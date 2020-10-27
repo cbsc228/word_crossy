@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<style>
+		table, tr, td{
+			border: 2px solid black;
+			text-align: center;
+		}
+		#gameboard{
+			height: 400px;
+			width: 400px;
+		}
+		#inputTable{
+			height: 200px;
+			width: 400px;
+		}
+	</style>
+	
+	<script>
+	var words = [
+	["purple", "pulp", "rue", "pure"],  // game #1
+	["banish", "bash", "nab", "bias"]   // game #2
+	];
+	
+	var locations = [
+	["xxxxXxxxxxxXxxxxxxXxxxXXXXXXxXxXxxxxXxXxxxxXxxxxx","2,4,a", "5,1,d", "4,4,d", "2,4,d"],  // game #1
+	["xxxXxxxxxXXXXxXxxXxxxXxxXxxxXXXXxxxxxxXxxxxxxxxxx","4,1,d", "3,2,a", "1,3,d", "1,5,a"]   // game #2
+	];
+	
+	//holds the game number randomly selected
+	var gameNumber;
+	
+	//holds the indices that are where each portion of the table start and end
+	const gameBoardStartIndex = 1;
+	const gameBoardEndIndex = 49;
+	const givenLettersStartIndex = 51;
+	const givenLettersEndIndex = 57;
+	const inputStartIndex = 60;
+	const inputEndIndex = 66;
+	
+	
+	//sets up the table on document load
+	function initiateTables(){
+		var dataElements = document.getElementsByTagName("td");
+		var i;
+		var emptyString = 3;
+		//console.log(dataElements.length);
+		for(i = 0; i < dataElements.length; i++)
+		{
+			//console.log(dataElements[i].innerHTML.length);
+			if(dataElements[i].innerHTML.length === emptyString)
+				dataElements[i].innerHTML = "*";
+		}
+		
+		for(var i = gameBoardStartIndex; i <= gameBoardEndIndex; i++){
+			dataElements[i].style.height = "41px";
+			dataElements[i].style.width = "47px";
+			}
+		for(var i = givenLettersStartIndex; i <= givenLettersEndIndex; i++){
+			dataElements[i].style.height = "41px";
+			dataElements[i].style.width = "47px";
+			}
+		for(var i = inputStartIndex; i <= inputEndIndex; i++){
+			dataElements[i].style.height = "41px";
+			dataElements[i].style.width = "47px";
+			}
+		/*
+		used to double check the accuracy of the global indices
+		dataElements[gameBoardStartIndex].innerHTML = 1;
+		dataElements[gameBoardEndIndex].innerHTML = 2;
+		dataElements[givenLettersStartIndex].innerHTML = 3;
+		dataElements[givenLettersEndIndex].innerHTML = 4;
+		dataElements[inputStartIndex].innerHTML = 5;
+		dataElements[inputEndIndex].innerHTML = 6;
+		*/
+	}
+	
+	//randomly selects which game to play
+	function selectGame(){
+		gameNumber = Math.floor(Math.random() * Math.floor(words.length));
+		console.log("Picking game " + (gameNumber + 1));
+	}
+	
+	//shuffles the letters in the palette
+	function shuffle(){
+		console.log("shuffle called");
+		if(document.getElementById("messageBox").innerHTML != "")
+			document.getElementById("messageBox").innerHTML = "";
+		var lettersPresent = false;
+		var dataElements = document.getElementsByTagName("td");
+		
+		for(var i = inputStartIndex; i <= inputEndIndex; i++){
+			if(dataElements[i].innerHTML != "*"){
+				lettersPresent = true;
+			}
+		}
+		
+		if(lettersPresent == true){
+			document.getElementById("messageBox").innerHTML = "Can't shuffle with letters in the palette"
+			//alert("Can't shuffle with letters in the palette");
+		}
+		else{
+			var letters = [];
+			var shuffledLetters = [];
+			var counter = 0;
+			for(var i = givenLettersStartIndex; i <= givenLettersEndIndex; i++){
+				if(dataElements[i].innerHTML != ""){
+					letters[counter] = dataElements[i].innerHTML;
+					counter += 1;
+				}
+			}
+			
+			numChars = letters.length;
+			for(var j = 0; j < numChars; j++){
+				var randomIndex = Math.floor(Math.random() * Math.floor(letters.length));
+				var placeHolder;
+				
+				placeHolder = letters[0];
+				letters[0] = letters[randomIndex];
+				letters[randomIndex] = placeHolder;
+				
+				shuffledLetters[j] = letters.shift();
+			}
+			
+			console.log("Shuffled letters: " + shuffledLetters);
+			counter = 0;
+			for(var k = givenLettersStartIndex; k <= givenLettersEndIndex; k++){
+				if(shuffledLetters[counter]){
+					dataElements[k].innerHTML = shuffledLetters[counter];
+					counter += 1;
+				}
+			}
+			
+		}
+	}
+	
+	//adds the clicked letter from the given letters to the palette
+	function addLetter(){
+		console.log("addLetter called");
+		this.removeEventListener("click", addLetter);
+		var dataElements = document.getElementsByTagName("td");
+		
+		var letterPlacement = inputStartIndex;
+		
+		while(dataElements[letterPlacement].innerHTML != "*"){
+			letterPlacement += 1;
+		}
+		dataElements[letterPlacement].innerHTML = this.innerHTML;
+	}
+	
+	//checks is the words entered by the user is correct
+	function tryWord(){
+		if(document.getElementById("messageBox").innerHTML != "")
+			document.getElementById("messageBox").innerHTML = "";
+		var dataElements = document.getElementsByTagName("td");
+		var wordToTry = "";
+		for(var i = inputStartIndex; i <= inputEndIndex; i++){
+			if(dataElements[i].innerHTML != "*"){
+				wordToTry += dataElements[i].innerHTML;
+			}
+		}
+		console.log("Word Attempt: " + wordToTry);
+		//word entered is blank
+		if(wordToTry == ""){
+		document.getElementById("messageBox").innerHTML = "Please enter a word.";
+		//alert("Please enter a word.");
+		}
+		//word entered is not blank
+		else{
+			//indicates the row the correct word starts at
+			var rowNum;
+			//indicates the column the correct word starts at
+			var colNum;
+			//indicates whether the word goes down or across
+			//true ~ down
+			//false ~ across
+			var fillType;
+			//indicates whether the words is a correct solution
+			var wordFlag = false;
+			
+			for(var i = 0; i < words[gameNumber].length; i++){
+				if(wordToTry == words[gameNumber][i]){
+					//console.log(locations[gameNumber][i+1]);
+					rowNum = locations[gameNumber][i+1].charAt(2);
+					colNum = locations[gameNumber][i+1].charAt(0);
+					if(locations[gameNumber][i+1].charAt(4) == 'd')
+						fillType = true;
+					else
+						fillType = false;
+					wordFlag = true;
+				}
+			}
+			//calculates where the word insertion starts
+			var startSpace = parseInt(colNum) + (parseInt(rowNum) - 1) * 7;
+			var count = 0;
+			if(wordFlag == true){
+				console.log("Word accepted");
+				numChars = wordToTry.length;
+				if(fillType == true){
+					var stopSpace = startSpace + 7 * numChars;
+					for(var i = startSpace; i < stopSpace; i += 7){
+						//fill word down
+						dataElements[i].innerHTML = wordToTry.charAt(count);
+						dataElements[i].style.color = "#ff3333";
+						
+						count++;
+					}
+				}
+				else{
+					var stopSpace = startSpace + numChars
+					for(var i = startSpace; i < stopSpace; i += 1){
+						//fill word across
+						dataElements[i].innerHTML = wordToTry.charAt(count);
+						dataElements[i].style.color = "#ff3333";
+						count++;
+					}
+				}
+			}
+			else{
+			document.getElementById("messageBox").innerHTML = "Word entered is not correct!"
+			}
+		}
+		//resets inputs
+		entryReset();
+		//checks to see if user has won the game
+		winCheck();
+	}
+	
+	//deletes the most recently added letter and reenables that letter on the palette
+	function deleteLetter(){
+		if(document.getElementById("messageBox").innerHTML != "")
+			document.getElementById("messageBox").innerHTML = "";
+		console.log("deleteLetter called");
+		var dataElements = document.getElementsByTagName("td");
+		if(dataElements[inputStartIndex].innerHTML == "*"){
+			document.getElementById("messageBox").innerHTML = "There are no letters to delete!";
+			//alert("There are no letters to delete!");
+		}
+		else{
+			var letterToReEnable;
+			var indexToRemove;
+			var foundFlag = false;
+			var reEnabledFlag = false;
+			for(var i = inputStartIndex; i <= inputEndIndex; i++){
+				if(dataElements[i].innerHTML == "*" && foundFlag == false){
+					foundFlag = true;
+					indexToRemove = i - 1;
+					letterToReEnable = dataElements[indexToRemove].innerHTML;
+					}
+			}
+			dataElements[indexToRemove].innerHTML = "*";
+			console.log("Removing most recent letter");
+			for(var j = givenLettersStartIndex; j <= givenLettersEndIndex; j++){
+				if(dataElements[j].innerHTML == letterToReEnable && reEnabledFlag == false){
+					dataElements[j].addEventListener("click", addLetter, false);
+				}
+			}
+		}
+	}
+	
+	//resets the tables for user input
+	function entryReset(){
+		var dataElements = document.getElementsByTagName("td");
+		for(var i = givenLettersStartIndex; i <= givenLettersEndIndex; i++){
+				dataElements[i].addEventListener("click", addLetter, false);
+			}
+		for(var i = inputStartIndex; i <= inputEndIndex; i++){
+				dataElements[i].innerHTML = "*";
+			}
+	}
+	
+	//checks to see if the user has won the game
+	function winCheck(){
+		var dataElements = document.getElementsByTagName("td");
+		var winFlag = true;
+		for(var i = gameBoardStartIndex; i <= gameBoardEndIndex; i++){
+			if(dataElements[i].innerHTML == "*")
+				winFlag = false;
+		}
+		
+		if(winFlag == true){
+			document.getElementById("messageBox").innerHTML = "Congratuations! You won! Click 'new game' to start over.";
+			//alert("Congratuations! You won! Click 'new game' to start over.");
+			for(var i = givenLettersStartIndex; i <= givenLettersEndIndex; i++){
+				dataElements[i].innerHTML = "*";
+				dataElements[i].removeEventListener("click", addLetter);
+			}
+			document.getElementById("shuffleButton").removeEventListener("click", shuffle);
+			document.getElementById("placeButton").removeEventListener("click", tryWord);
+			document.getElementById("deleteButton").removeEventListener("click", deleteLetter);
+		}
+	}
+	
+	//sets the table after the user has clicked "new game"
+	function setTable(){
+		var tableCoordinates = locations[gameNumber][0];
+		
+		//console.log(tableCoordinates);
+		
+		var dataElements = document.getElementsByTagName("td");
+		
+		var counter = 0;
+		for(var i = gameBoardStartIndex; i <= gameBoardEndIndex; i++){
+			if(tableCoordinates.charAt(counter) == 'x')
+				dataElements[i].innerHTML = "";
+			else if(tableCoordinates.charAt(counter) == 'X')
+				dataElements[i].innerHTML = "*";
+			counter += 1;
+			dataElements[i].style.color = "black";
+		}
+		
+		var letters = [];
+		var anagramWord = words[gameNumber][0];
+		for (var i = 0; i < anagramWord.length; i++){
+			letters[i] = anagramWord.charAt(i);
+		}
+		
+		letters.sort();
+		console.log("Game word: " + anagramWord);
+		console.log("Sorted letters: " + letters);
+		
+		counter = 0;
+		for(var i = givenLettersStartIndex; i <= givenLettersEndIndex; i++){
+			if(letters[counter]){
+				dataElements[i].innerHTML = letters[counter];
+				dataElements[i].addEventListener("click", addLetter, false);
+				counter += 1;
+			}
+			else{
+				dataElements[i].innerHTML = "";
+			}
+		}
+	}
+	
+	//starts a new game
+	function startNewGame(){
+		console.log("Starting New Game");
+		entryReset();
+		document.getElementById("messageBox").innerHTML = ""
+		document.getElementById("shuffleButton").addEventListener("click", shuffle, false);
+		document.getElementById("placeButton").addEventListener("click", tryWord, false);
+		document.getElementById("deleteButton").addEventListener("click", deleteLetter, false);
+		selectGame();
+		setTable();
+	}
+	
+	</script>
+</head>
+
+<body onload="initiateTables()">
+<table id="gameboard">
+	<tr>
+		<td colspan="7" id="newGameButton" onclick="startNewGame()">
+			New Game
+		</td>
+	</tr>
+	<tr>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+	</tr>
+	<tr>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+	</tr>
+	<tr>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+	</tr>
+	<tr>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+	</tr>
+	<tr>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+	</tr>
+	<tr>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+	</tr>
+	<tr>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+	</tr>
+</table>
+
+<table id="inputTable">
+	<tr>
+		<td colspan="7" id="shuffleButton">
+			Shuffle
+		</td>
+	</tr>
+	<tr>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+	</tr>
+	<tr>
+		<td colspan="4" id="placeButton">
+			Place/Try
+		</td>
+		<td colspan="3" id="deleteButton">
+			Delete
+		</td>
+	</tr>
+	<tr>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+		<td>
+		</td>
+	</tr>
+	<tr>
+		<td colspan = "7" height = "40px" id="messageBox">
+		</td>
+	</tr>
+</table>
+</body>
+
+</html>
